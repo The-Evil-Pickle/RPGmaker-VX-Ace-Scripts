@@ -7,7 +7,13 @@
 # -- Creator: The_Evil_Pickle
 # -- Requires: n/a
 # 
+#==============================================================================
+# Description:
+# This script allows for some shops to have items cost a combination of other items to purchase
+# The idea is for this to simulate a crafting system of sorts, where items have thier own recipies
+#==============================================================================
 # Instructions: Put this in Materials
+#
 # To open a craftshop, call the following script right before shop processing (without "#" symbol):
 #TKK::CRAFTSHOP::makeCraftShop
 #==============================================================================
@@ -206,16 +212,32 @@ class Window_ShopStatus < Window_Base
   alias window_shopstatus_draw_equip_info_tkkcs draw_equip_info
   def draw_equip_info(x, y)
     if (TKK::CRAFTSHOP::isThisCraftShop) then
-      linum = 0
-      @item.tkkcs_recipe.each { |ingredient|
-      enabled = $game_party.item_number(ingredient[0]) >= ingredient[1]
-      change_color(normal_color, enabled)
-      draw_text(x, y + linum * line_height, 224, line_height, ingredient[0].name + " " + $game_party.item_number(ingredient[0]).to_s + "/" + ingredient[1].to_s)
-      linum += 1
-      }
+      draw_craftshop_recipe(x, y)
     else
       window_shopstatus_draw_equip_info_tkkcs(x, y)
     end
+  end
+  
+  alias window_shopstatus_refresh_tkkcs refresh
+  def refresh
+    window_shopstatus_refresh_tkkcs
+    if (TKK::CRAFTSHOP::isThisCraftShop) then
+       draw_craftshop_recipe(4, line_height) unless (@item == nil or @item.is_a?(RPG::EquipItem))
+    end
+  end
+  
+  def draw_craftshop_recipe(x, y)
+    hasAllIngreds = true
+    linum = 1
+    @item.tkkcs_recipe.each { |ingredient|
+      enabled = $game_party.item_number(ingredient[0]) >= ingredient[1]
+      hasAllIngreds = enabled if hasAllIngreds
+      change_color(normal_color, enabled)
+      draw_text(x, y + linum * line_height, 224, line_height, ingredient[0].name + " " + $game_party.item_number(ingredient[0]).to_s + "/" + ingredient[1].to_s)
+      linum += 1
+    }
+    change_color(system_color, hasAllIngreds)
+    draw_text(x, y, 224, line_height, "Requires:")
   end
   
 end
@@ -231,6 +253,9 @@ class Window_ShopCommand < Window_HorzCommand
   #--------------------------------------------------------------------------
   alias window_shopcommand_init_tkkcs initialize
   def initialize(window_width, purchase_only)
+    p "init shop"
+    p TKK::CRAFTSHOP::isThisCraftShop
+    p TKK::CRAFTSHOP::setupToggle
     if (TKK::CRAFTSHOP::isThisCraftShop) then
       if (TKK::CRAFTSHOP::setupToggle) then
         TKK::CRAFTSHOP::endCraftShop
