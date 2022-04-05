@@ -3,7 +3,7 @@
 #==============================================================================
 # 
 # ▼ Craftshop
-# -- Last Updated: 2022.01.13
+# -- Last Updated: 2022.04.5
 # -- Creator: The_Evil_Pickle
 # -- Requires: n/a
 # 
@@ -231,7 +231,6 @@ class Window_ShopCommand < Window_HorzCommand
   #--------------------------------------------------------------------------
   alias window_shopcommand_init_tkkcs initialize
   def initialize(window_width, purchase_only)
-    p "init shop command"
     if (TKK::CRAFTSHOP::isThisCraftShop) then
       if (TKK::CRAFTSHOP::setupToggle) then
         TKK::CRAFTSHOP::endCraftShop
@@ -240,5 +239,45 @@ class Window_ShopCommand < Window_HorzCommand
       end
     end
     window_shopcommand_init_tkkcs(window_width, purchase_only)
+  end
+end
+
+
+#==============================================================================
+# ** Scene_Shop
+#------------------------------------------------------------------------------
+#  This class performs shop screen processing.
+#==============================================================================
+
+class Scene_Shop < Scene_MenuBase
+  
+  #--------------------------------------------------------------------------
+  # * Execute Purchase
+  #--------------------------------------------------------------------------
+  alias scene_shop_do_buy_tkkcs do_buy
+  def do_buy(number)
+    if (TKK::CRAFTSHOP::isThisCraftShop) then
+      @item.tkkcs_recipe.each { |ingredient|
+        $game_party.lose_item(ingredient[0], number * ingredient[1])
+      }
+    end
+    scene_shop_do_buy_tkkcs(number)
+  end
+  
+  
+  #--------------------------------------------------------------------------
+  # * Get Maximum Quantity Buyable
+  #--------------------------------------------------------------------------
+  alias scene_shop_max_buy_tkkcs max_buy
+  def max_buy
+    if (TKK::CRAFTSHOP::isThisCraftShop) then
+      max = $game_party.max_item_number(@item) - $game_party.item_number(@item)
+      @item.tkkcs_recipe.each { |ingredient|
+        max = [max, $game_party.item_number(ingredient[0]) / ingredient[1]].min
+      }
+      buying_price == 0 ? max : [max, money / buying_price].min
+    else
+      scene_shop_max_buy_tkkcs
+    end
   end
 end
